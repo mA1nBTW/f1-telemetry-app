@@ -628,13 +628,22 @@ const PLOT_LAYOUT_BASE = {
     paper_bgcolor: '#141414',
     plot_bgcolor:  '#141414',
     font: { color: '#f0f0f0', family: 'Barlow Condensed, sans-serif', size: 13 },
-    margin: { t: 28, r: 20, b: 48, l: 60 },
+    margin: { t: 28, r: 10, b: 40, l: 40 },
+    
+    // 1. Возвращаем возможность трогать и двигать график
+    dragmode: 'pan', 
+    
     legend: { bgcolor: '#1c1c1c', bordercolor: '#2a2a2a', borderwidth: 1 },
     xaxis: {
         gridcolor: '#222', zerolinecolor: '#333',
         title: { text: 'Distance (m)', font: { size: 12, color: '#888' } }
+        // 2. УДАЛИЛИ fixedrange: true! Теперь дистанцию можно растягивать пальцами.
     },
-    yaxis: { gridcolor: '#222', zerolinecolor: '#333' },
+    yaxis: { 
+        gridcolor: '#222', zerolinecolor: '#333',
+        // 3. ОСТАВИЛИ fixedrange: true! Чтобы высота (км/ч) не ломалась и не плющилась при зуме.
+        fixedrange: true 
+    },
     hovermode: 'x unified',
     hoverlabel: { bgcolor: '#1c1c1c', bordercolor: '#333', font: { family: 'Barlow Condensed', size: 13 } }
 };
@@ -752,19 +761,19 @@ function renderCharts(data, d1code, d2code, d1info, d2info) {
     Plotly.newPlot('chart-speed', [
         { x: d1.distance, y: d1.speed, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2} },
         { x: d2.distance, y: d2.speed, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2} },
-    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Speed (km/h)', font:{size:12,color:'#888'}} } }, { responsive:true, displayModeBar:false });
+    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Speed (km/h)', font:{size:12,color:'#888'}} } }, { responsive: true, displayModeBar: true, displaylogo: false });
 
     // ── Throttle chart ──
     Plotly.newPlot('chart-throttle', [
         { x: d1.distance, y: d1.throttle, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2}, fill:'tozeroy', fillcolor: d1info.color+'22' },
         { x: d2.distance, y: d2.throttle, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2}, fill:'tozeroy', fillcolor: d2info.color+'22' },
-    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Throttle (%)', font:{size:12,color:'#888'}} } }, { responsive:true, displayModeBar:false });
+    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Throttle (%)', font:{size:12,color:'#888'}} } }, { responsive: true, displayModeBar: true, displaylogo: false });
 
     // ── Gear chart ──
     Plotly.newPlot('chart-gear', [
         { x: d1.distance, y: d1.gear, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2, shape:'hv'} },
         { x: d2.distance, y: d2.gear, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2, shape:'hv'} },
-    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Gear', font:{size:12,color:'#888'}}, dtick:1 } }, { responsive:true, displayModeBar:false });
+    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Gear', font:{size:12,color:'#888'}}, dtick:1 } }, { responsive: true, displayModeBar: true, displaylogo: false });
 
     // ── Delta time chart ──
     const delta = data.delta;
@@ -808,7 +817,7 @@ function renderCharts(data, d1code, d2code, d1info, d2info) {
                 x0: 0, x1: 1, y0: 0, y1: 0,
                 line: { color: '#555', width: 1 }
             }]
-        }, { responsive: true, displayModeBar: false });
+        }, { responsive: true, displayModeBar: true, displaylogo: false });
     } else {
         document.getElementById('chart-delta').innerHTML =
             `<div style="display:flex;align-items:center;justify-content:center;height:220px;color:var(--text-muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;text-transform:uppercase;font-size:13px;">
@@ -920,8 +929,13 @@ function renderTrackMap(mode) {
         showlegend: false,
         hovermode: 'closest',
         hoverlabel: { bgcolor: '#1c1c1c', bordercolor: '#333', font: { family: 'Barlow Condensed', size: 13 } },
-        xaxis: { visible: false, scaleanchor: 'y', scaleratio: 1 },
-        yaxis: { visible: false },
+        
+        // Включаем перемещение по карте
+        dragmode: 'pan', 
+        
+        // Убираем fixedrange с обеих осей, чтобы карту можно было приближать!
+        xaxis: { visible: false, scaleanchor: 'y', scaleratio: 1 }, 
+        yaxis: { visible: false }, 
     };
 
     const traces = [];
