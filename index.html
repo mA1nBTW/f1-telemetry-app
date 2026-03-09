@@ -502,7 +502,7 @@ async function populateTracks() {
     sel.disabled = true;
 
     try {
-        const resp = await fetch(`http://127.0.0.1:8000/api/schedule?year=${year}`);
+        const resp = await fetch(`/api/schedule?year=${year}`);
         if (!resp.ok) throw new Error("Network response was not ok");
         
         // Сохраняем расписание в глобальную переменную
@@ -559,7 +559,7 @@ async function populateDrivers() {
     d2.disabled = true;
 
     try {
-        const resp = await fetch(`http://127.0.0.1:8000/api/drivers?year=${year}&track=${track}&session=${session}`);
+        const resp = await fetch(`/api/drivers?year=${year}&track=${track}&session=${session}`);
         if (!resp.ok) throw new Error("Failed to load drivers");
         
         DRIVERS = await resp.json();
@@ -654,14 +654,18 @@ async function runComparison() {
     }
 
     const d1info = DRIVERS.find(d => d.code === driver1) || { color: '#00D2BE', name: driver1 };
-    const d2info = DRIVERS.find(d => d.code === driver2) || { color: '#aaaaaa', name: driver2 };
+    const d2info = { ...(DRIVERS.find(d => d.code === driver2) || { color: '#aaaaaa', name: driver2 }) };
+
+    if (d1info.color === d2info.color) {
+        d2info.color = '#ffffff'; 
+    }
 
     const btn = document.getElementById('btn-compare');
     btn.disabled = true;
     btn.textContent = 'Loading…';
     setStatus('loading', `Fetching telemetry: ${driver1} vs ${driver2} — ${year} Rd ${track} (${session})…`);
 
-    const url = `http://127.0.0.1:8000/api/telemetry?year=${year}&track=${track}&session=${session}&driver1=${driver1}&driver2=${driver2}`;
+    const url = `/api/telemetry?year=${year}&track=${track}&session=${session}&driver1=${driver1}&driver2=${driver2}`;
 
     try {
         const resp = await fetch(url);

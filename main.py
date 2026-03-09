@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import fastf1
 import pandas as pd
@@ -17,11 +18,8 @@ app.add_middleware(
 
 def get_driver_data(session, driver_code):
     try:
-        # Ищем самый быстрый круг
         fastest_lap = session.laps.pick_drivers(driver_code).pick_fastest()
         
-        # Используем get_telemetry(), который возвращает всё вместе:
-        # и скорость, и педали, и X/Y координаты, и сразу считает дистанцию.
         tel = fastest_lap.get_telemetry()
 
         result = {
@@ -31,15 +29,15 @@ def get_driver_data(session, driver_code):
             "throttle":  tel['Throttle'].tolist(),
             "brake":     tel['Brake'].tolist(),
             "gear":      tel['nGear'].tolist(),
-            "x":         tel['X'].tolist(),  # Берем готовый X
-            "y":         tel['Y'].tolist()   # Берем готовый Y
+            "x":         tel['X'].tolist(),
+            "y":         tel['Y'].tolist()
         }
 
         return result
 
     except Exception as e:
         print(f"[ERROR] get_driver_data({driver_code}): {e}")
-        return {"error": f"Пилот {driver_code} не проехал ни одного быстрого круга."}
+        return {"error": f"Driver {driver_code} did not drive a single lap."}
 
 def format_lap_time(lap_time_timedelta):
     if str(lap_time_timedelta) == "NaT": # If there is no time
@@ -88,13 +86,10 @@ def get_drivers(year: int, track: int, session: str):
     fastf1.Cache.enable_cache('cache_folder')
     
     sess = fastf1.get_session(year, track, session)
-    # Отключаем загрузку тяжелых данных, чтобы API отвечало мгновенно
     sess.load(telemetry=False, laps=False, weather=False, messages=False)
     
     result = []
-    # sess.results — это таблица со всеми участниками конкретной сессии
     for _, row in sess.results.iterrows():
-        # Бывает, что у резервистов или старых команд нет цвета, ставим серый по умолчанию
         color = f"#{row['TeamColor']}" if pd.notna(row['TeamColor']) and row['TeamColor'] else "#888888"
         
         result.append({
@@ -112,21 +107,19 @@ def get_schedule(year: int):
     schedule = fastf1.get_event_schedule(year)
     races = schedule[schedule['RoundNumber'] > 0]
     
-    # Словарь для перевода официальных названий в короткие коды для API
     session_map = {
         'Practice 1': 'FP1',
         'Practice 2': 'FP2',
         'Practice 3': 'FP3',
         'Qualifying': 'Q',
         'Sprint Qualifying': 'SQ',
-        'Sprint Shootout': 'SQ', # В 2023 году называлось так
+        'Sprint Shootout': 'SQ',
         'Sprint': 'S',
         'Race': 'R'
     }
     
     result = []
     for _, row in races.iterrows():
-        # Собираем все 5 сессий уик-энда
         sessions = []
         for i in range(1, 6):
             s_name = row.get(f'Session{i}')
@@ -139,7 +132,7 @@ def get_schedule(year: int):
         result.append({
             "id": row['RoundNumber'],
             "name": f"{row['Country']} — {row['Location']}",
-            "sessions": sessions # Теперь у каждой трассы есть свой массив сессий!
+            "sessions": sessions
         })
         
     return result
@@ -150,3 +143,7 @@ def get_telemetry(year: int, track: int, session: str, driver1: str, driver2: st
     print(f"Пришел запрос: {year} {track} {session} | {driver1} vs {driver2}")
     # Return result. FastAPI creates JSON from it.
     return get_h2h_telemetry(year, track, session, driver1, driver2)
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("index.html")
