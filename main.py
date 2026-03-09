@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import fastf1
+import pandas as pd
 
 # Creating web-app
 app = FastAPI()
@@ -16,21 +17,28 @@ app.add_middleware(
 
 def get_driver_data(session, driver_code):
     try:
-        # Searching for the fastest lap
+        # Ищем самый быстрый круг
         fastest_lap = session.laps.pick_drivers(driver_code).pick_fastest()
         
-        # Trynna get the telemetry
-        tel = fastest_lap.get_car_data().add_distance()
-        
-        return {
-            "lap_time": format_lap_time(fastest_lap['LapTime']),
-            "distance": tel['Distance'].tolist(),
-            "speed": tel['Speed'].tolist(),
-            "throttle": tel['Throttle'].tolist(),
-            "brake": tel['Brake'].tolist(),
-            "gear": tel['nGear'].tolist()
+        # Используем get_telemetry(), который возвращает всё вместе:
+        # и скорость, и педали, и X/Y координаты, и сразу считает дистанцию.
+        tel = fastest_lap.get_telemetry()
+
+        result = {
+            "lap_time":  format_lap_time(fastest_lap['LapTime']),
+            "distance":  tel['Distance'].tolist(),
+            "speed":     tel['Speed'].tolist(),
+            "throttle":  tel['Throttle'].tolist(),
+            "brake":     tel['Brake'].tolist(),
+            "gear":      tel['nGear'].tolist(),
+            "x":         tel['X'].tolist(),  # Берем готовый X
+            "y":         tel['Y'].tolist()   # Берем готовый Y
         }
+
+        return result
+
     except Exception as e:
+        print(f"[ERROR] get_driver_data({driver_code}): {e}")
         return {"error": f"Пилот {driver_code} не проехал ни одного быстрого круга."}
 
 def format_lap_time(lap_time_timedelta):
