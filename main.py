@@ -56,6 +56,28 @@ def get_h2h_telemetry(year, track, session_name, driver1, driver2):
         driver2: get_driver_data(session, driver2)
     }
 
+@app.get("/api/schedule")
+def get_schedule(year: int):
+    # Cache enabled for single time donwloading of the schedule
+    fastf1.Cache.enable_cache('cache_folder') 
+    
+    print(f"Запрашиваю календарь для {year} года...")
+    # Getting the schedule
+    schedule = fastf1.get_event_schedule(year)
+    
+    # Filter (tests roundNukber = 0)
+    races = schedule[schedule['RoundNumber'] > 0]
+    
+    # Formatting new list
+    result = []
+    for _, row in races.iterrows():
+        result.append({
+            "id": row['RoundNumber'],
+            "name": f"{row['Country']} — {row['Location']}" 
+        })
+        
+    return result
+
 # Creating route (API endpoint)
 @app.get("/api/telemetry")
 def get_telemetry(year: int, track: int, session: str, driver1: str, driver2: str):
