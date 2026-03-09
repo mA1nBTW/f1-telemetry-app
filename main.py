@@ -14,6 +14,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def get_driver_data(session, driver_code):
+    try:
+        # Searching for the fastest lap
+        fastest_lap = session.laps.pick_drivers(driver_code).pick_fastest()
+        
+        # Trynna get the telemetry
+        tel = fastest_lap.get_car_data().add_distance()
+        
+        return {
+            "lap_time": format_lap_time(fastest_lap['LapTime']),
+            "distance": tel['Distance'].tolist(),
+            "speed": tel['Speed'].tolist(),
+            "throttle": tel['Throttle'].tolist(),
+            "brake": tel['Brake'].tolist(),
+            "gear": tel['nGear'].tolist()
+        }
+    except Exception as e:
+        return {"error": f"Пилот {driver_code} не проехал ни одного быстрого круга."}
+
 def format_lap_time(lap_time_timedelta):
     if str(lap_time_timedelta) == "NaT": # If there is no time
         return "No time"
@@ -32,29 +51,9 @@ def get_h2h_telemetry(year, track, session_name, driver1, driver2):
     session = fastf1.get_session(year, track, session_name)
     session.load(telemetry=True, weather=False, messages=False) 
     
-    lap_d1 = session.laps.pick_drivers(driver1).pick_fastest()
-    lap_d2 = session.laps.pick_drivers(driver2).pick_fastest()
-    
-    tel_d1 = lap_d1.get_car_data().add_distance()
-    tel_d2 = lap_d2.get_car_data().add_distance()
-    
     return {
-        driver1: {
-            "lap_time": format_lap_time(lap_d1['LapTime']),
-            "distance": tel_d1['Distance'].tolist(),
-            "speed": tel_d1['Speed'].tolist(),
-            "throttle": tel_d1['Throttle'].tolist(),
-            "brake": tel_d1['Brake'].tolist(),
-            "gear": tel_d1['nGear'].tolist()
-        },
-        driver2: {
-            "lap_time": format_lap_time(lap_d2['LapTime']),
-            "distance": tel_d2['Distance'].tolist(),
-            "speed": tel_d2['Speed'].tolist(),
-            "throttle": tel_d2['Throttle'].tolist(),
-            "brake": tel_d2['Brake'].tolist(),
-            "gear": tel_d2['nGear'].tolist()
-        }
+        driver1: get_driver_data(session, driver1),
+        driver2: get_driver_data(session, driver2)
     }
 
 # Creating route (API endpoint)

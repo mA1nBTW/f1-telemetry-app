@@ -610,6 +610,22 @@ async function runComparison() {
         if (!resp.ok) throw new Error(`Server error ${resp.status}`);
         const data = await resp.json();
 
+        if (data[driver1].error || data[driver2].error) {
+            let errorMsg = "";
+            if (data[driver1].error) errorMsg += data[driver1].error + " ";
+            if (data[driver2].error) errorMsg += data[driver2].error;
+            
+            setStatus('error', errorMsg);
+            
+            document.getElementById('chart-area').innerHTML = `
+                <div id="placeholder">
+                    <div class="placeholder-icon" style="color: var(--red);">⚠️</div>
+                    <div class="placeholder-text" style="color: var(--text); opacity: 1;">${errorMsg}</div>
+                </div>
+            `;
+            return;
+        }
+
         renderCharts(data, driver1, driver2, d1info, d2info);
         setStatus('success', `Loaded · ${driver1} vs ${driver2} · ${year} Rd ${track} · ${session}`);
 
