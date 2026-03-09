@@ -81,24 +81,65 @@ def get_h2h_telemetry(year, track, session_name, driver1, driver2):
 
     return result
 
+import pandas as pd
+
+@app.get("/api/drivers")
+def get_drivers(year: int, track: int, session: str):
+    fastf1.Cache.enable_cache('cache_folder')
+    
+    sess = fastf1.get_session(year, track, session)
+    # Отключаем загрузку тяжелых данных, чтобы API отвечало мгновенно
+    sess.load(telemetry=False, laps=False, weather=False, messages=False)
+    
+    result = []
+    # sess.results — это таблица со всеми участниками конкретной сессии
+    for _, row in sess.results.iterrows():
+        # Бывает, что у резервистов или старых команд нет цвета, ставим серый по умолчанию
+        color = f"#{row['TeamColor']}" if pd.notna(row['TeamColor']) and row['TeamColor'] else "#888888"
+        
+        result.append({
+            "code": row['Abbreviation'],
+            "name": row['FullName'],
+            "color": color
+        })
+        
+    return result
+
 @app.get("/api/schedule")
 def get_schedule(year: int):
-    # Cache enabled for single time donwloading of the schedule
     fastf1.Cache.enable_cache('cache_folder') 
-    
     print(f"Запрашиваю календарь для {year} года...")
-    # Getting the schedule
     schedule = fastf1.get_event_schedule(year)
-    
-    # Filter (tests roundNukber = 0)
     races = schedule[schedule['RoundNumber'] > 0]
     
-    # Formatting new list
+    # Словарь для перевода официальных названий в короткие коды для API
+    session_map = {
+        'Practice 1': 'FP1',
+        'Practice 2': 'FP2',
+        'Practice 3': 'FP3',
+        'Qualifying': 'Q',
+        'Sprint Qualifying': 'SQ',
+        'Sprint Shootout': 'SQ', # В 2023 году называлось так
+        'Sprint': 'S',
+        'Race': 'R'
+    }
+    
     result = []
     for _, row in races.iterrows():
+        # Собираем все 5 сессий уик-энда
+        sessions = []
+        for i in range(1, 6):
+            s_name = row.get(f'Session{i}')
+            if pd.notna(s_name) and s_name:
+                sessions.append({
+                    "code": session_map.get(s_name, s_name), 
+                    "name": s_name
+                })
+                
         result.append({
             "id": row['RoundNumber'],
-            "name": f"{row['Country']} — {row['Location']}" 
+            "name": f"{row['Country']} — {row['Location']}",
+            "sessions": sessions # Теперь у каждой трассы есть свой массив сессий!
         })
         
     return result

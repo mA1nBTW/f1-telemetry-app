@@ -436,12 +436,6 @@
     <div class="control-group">
         <label>Session</label>
         <select id="sel-session">
-            <option value="Q">Qualifying</option>
-            <option value="R">Race</option>
-            <option value="FP1">FP1</option>
-            <option value="FP2">FP2</option>
-            <option value="FP3">FP3</option>
-            <option value="S">Sprint</option>
         </select>
     </div>
 
@@ -495,130 +489,103 @@
 <script>
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const DRIVERS = [
-    { code: "VER", name: "M. Verstappen", color: "#3671C6" },
-    { code: "PER", name: "S. Pérez",      color: "#3671C6" },
-    { code: "LEC", name: "C. Leclerc",    color: "#E8002D" },
-    { code: "SAI", name: "C. Sainz",      color: "#E8002D" },
-    { code: "HAM", name: "L. Hamilton",   color: "#27F4D2" },
-    { code: "RUS", name: "G. Russell",    color: "#27F4D2" },
-    { code: "NOR", name: "L. Norris",     color: "#FF8000" },
-    { code: "PIA", name: "O. Piastri",    color: "#FF8000" },
-    { code: "ALO", name: "F. Alonso",     color: "#358C75" },
-    { code: "STR", name: "L. Stroll",     color: "#358C75" },
-    { code: "OCO", name: "E. Ocon",       color: "#0090FF" },
-    { code: "GAS", name: "P. Gasly",      color: "#0090FF" },
-    { code: "ALB", name: "A. Albon",      color: "#64C4FF" },
-    { code: "SAR", name: "L. Sargeant",   color: "#64C4FF" },
-    { code: "BOT", name: "V. Bottas",     color: "#C92D4B" },
-    { code: "ZHO", name: "G. Zhou",       color: "#C92D4B" },
-    { code: "TSU", name: "Y. Tsunoda",    color: "#6692FF" },
-    { code: "RIC", name: "D. Ricciardo",  color: "#6692FF" },
-    { code: "MAG", name: "K. Magnussen",  color: "#B6BABD" },
-    { code: "HUL", name: "N. Hülkenberg", color: "#B6BABD" },
-    { code: "ANT", name: "A. Antonelli",  color: "#27F4D2" },
-    { code: "BEA", name: "O. Bearman",    color: "#E8002D" },
-    { code: "LAW", name: "L. Lawson",     color: "#3671C6" },
-    { code: "HAD", name: "I. Hadjar",     color: "#6692FF" },
-    { code: "DOO", name: "J. Doohan",     color: "#0090FF" },
-    { code: "BOR", name: "G. Bortoleto",  color: "#C92D4B" },
-];
-
-// // 2025 calendar (round number → name)
-// const TRACKS_2025 = [
-//     { id: 1,  name: "Australia — Melbourne" },
-//     { id: 2,  name: "China — Shanghai" },
-//     { id: 3,  name: "Japan — Suzuka" },
-//     { id: 4,  name: "Bahrain — Sakhir" },
-//     { id: 5,  name: "Saudi Arabia — Jeddah" },
-//     { id: 6,  name: "Miami" },
-//     { id: 7,  name: "Emilia-Romagna — Imola" },
-//     { id: 8,  name: "Monaco" },
-//     { id: 9,  name: "Spain — Barcelona" },
-//     { id: 10, name: "Canada — Montréal" },
-//     { id: 11, name: "Austria — Spielberg" },
-//     { id: 12, name: "Great Britain — Silverstone" },
-//     { id: 13, name: "Belgium — Spa" },
-//     { id: 14, name: "Hungary — Budapest" },
-//     { id: 15, name: "Netherlands — Zandvoort" },
-//     { id: 16, name: "Italy — Monza" },
-//     { id: 17, name: "Azerbaijan — Baku" },
-//     { id: 18, name: "Singapore" },
-//     { id: 19, name: "USA — Austin" },
-//     { id: 20, name: "Mexico City" },
-//     { id: 21, name: "São Paulo — Interlagos" },
-//     { id: 22, name: "Las Vegas" },
-//     { id: 23, name: "Qatar — Lusail" },
-//     { id: 24, name: "Abu Dhabi — Yas Marina" },
-// ];
-
-// const TRACKS_OTHER = [
-//     { id: 1,  name: "Australia — Melbourne" },
-//     { id: 2,  name: "Bahrain — Sakhir" },
-//     { id: 3,  name: "Saudi Arabia — Jeddah" },
-//     { id: 4,  name: "Japan — Suzuka" },
-//     { id: 5,  name: "China — Shanghai" },
-//     { id: 6,  name: "Miami" },
-//     { id: 7,  name: "Emilia-Romagna — Imola" },
-//     { id: 8,  name: "Monaco" },
-//     { id: 9,  name: "Spain — Barcelona" },
-//     { id: 10, name: "Canada — Montréal" },
-//     { id: 11, name: "Austria — Spielberg" },
-//     { id: 12, name: "Great Britain — Silverstone" },
-//     { id: 13, name: "Hungary — Budapest" },
-//     { id: 14, name: "Belgium — Spa" },
-//     { id: 15, name: "Netherlands — Zandvoort" },
-//     { id: 16, name: "Italy — Monza" },
-//     { id: 17, name: "Azerbaijan — Baku" },
-//     { id: 18, name: "Singapore" },
-//     { id: 19, name: "USA — Austin" },
-//     { id: 20, name: "Mexico City" },
-//     { id: 21, name: "São Paulo — Interlagos" },
-//     { id: 22, name: "Las Vegas" },
-//     { id: 23, name: "Qatar — Lusail" },
-//     { id: 24, name: "Abu Dhabi — Yas Marina" },
-// ];
+let DRIVERS = [];
+let CURRENT_SCHEDULE = [];
 
 // ─── Init ────────────────────────────────────────────────────────────────────
-
-function populateDrivers() {
-    const d1 = document.getElementById('sel-d1');
-    const d2 = document.getElementById('sel-d2');
-    DRIVERS.forEach((d, i) => {
-        d1.insertAdjacentHTML('beforeend', `<option value="${d.code}">${d.code} — ${d.name}</option>`);
-        d2.insertAdjacentHTML('beforeend', `<option value="${d.code}">${d.code} — ${d.name}</option>`);
-    });
-    d1.value = 'VER';
-    d2.value = 'RUS';
-    updateDriverUI();
-}
 
 async function populateTracks() {
     const year = document.getElementById('sel-year').value;
     const sel = document.getElementById('sel-track');
     
-    // While waiting
     sel.innerHTML = '<option>Loading calendar...</option>';
     sel.disabled = true;
 
     try {
-        // Knocking for the endpoint
         const resp = await fetch(`http://127.0.0.1:8000/api/schedule?year=${year}`);
         if (!resp.ok) throw new Error("Network response was not ok");
-        const tracks = await resp.json();
         
-        // Clear and fill with new data
+        // Сохраняем расписание в глобальную переменную
+        CURRENT_SCHEDULE = await resp.json();
+        
         sel.innerHTML = ''; 
-        tracks.forEach(t => {
+        CURRENT_SCHEDULE.forEach(t => {
             sel.insertAdjacentHTML('beforeend', `<option value="${t.id}">Rd ${t.id} · ${t.name}</option>`);
         });
         
-        // Selector unblock
         sel.disabled = false;
+        
+        // КАК ТОЛЬКО загрузили трассы, обновляем сессии для первой выбранной трассы
+        updateSessions(); 
         
     } catch (error) {
         console.error("Failed to load tracks:", error);
         sel.innerHTML = '<option>Error loading calendar</option>';
+    }
+}
+
+// НОВАЯ ФУНКЦИЯ: Заполняет список сессий в зависимости от трассы
+function updateSessions() {
+    const trackId = parseInt(document.getElementById('sel-track').value);
+    // Ищем выбранную трассу в нашем сохраненном расписании
+    const trackData = CURRENT_SCHEDULE.find(t => t.id === trackId);
+    const selSession = document.getElementById('sel-session');
+    
+    selSession.innerHTML = '';
+    
+    if (trackData && trackData.sessions) {
+        trackData.sessions.forEach(s => {
+            // Если это Квалификация (Q), делаем её выбранной по умолчанию, иначе первую по списку
+            const isSelected = s.code === 'Q' ? 'selected' : '';
+            selSession.insertAdjacentHTML('beforeend', `<option value="${s.code}" ${isSelected}>${s.name}</option>`);
+        });
+    }
+    
+    // КАК ТОЛЬКО обновили сессии, идем качать пилотов!
+    populateDrivers();
+}
+
+async function populateDrivers() {
+    const year = document.getElementById('sel-year').value;
+    const track = document.getElementById('sel-track').value;
+    const session = document.getElementById('sel-session').value;
+    
+    const d1 = document.getElementById('sel-d1');
+    const d2 = document.getElementById('sel-d2');
+    
+    d1.innerHTML = '<option>Loading...</option>';
+    d2.innerHTML = '<option>Loading...</option>';
+    d1.disabled = true;
+    d2.disabled = true;
+
+    try {
+        const resp = await fetch(`http://127.0.0.1:8000/api/drivers?year=${year}&track=${track}&session=${session}`);
+        if (!resp.ok) throw new Error("Failed to load drivers");
+        
+        DRIVERS = await resp.json();
+        
+        d1.innerHTML = '';
+        d2.innerHTML = '';
+        
+        DRIVERS.forEach(d => {
+            const opt = `<option value="${d.code}">${d.code} — ${d.name}</option>`;
+            d1.insertAdjacentHTML('beforeend', opt);
+            d2.insertAdjacentHTML('beforeend', opt);
+        });
+        
+        // Автоматически выбираем разных пилотов
+        if (DRIVERS.length > 0) d1.value = DRIVERS[0].code;
+        if (DRIVERS.length > 1) d2.value = DRIVERS[1].code;
+
+        d1.disabled = false;
+        d2.disabled = false;
+        
+        updateDriverUI();
+        
+    } catch (error) {
+        console.error(error);
+        d1.innerHTML = '<option>Error</option>';
+        d2.innerHTML = '<option>Error</option>';
     }
 }
 
@@ -631,12 +598,18 @@ function updateDriverUI() {
     });
 }
 
+// ─── Слушатели событий (Цепная реакция) ───
 document.getElementById('sel-year').addEventListener('change', populateTracks);
+// Если изменили трассу -> меняем сессии
+document.getElementById('sel-track').addEventListener('change', updateSessions); 
+// Если изменили сессию -> меняем пилотов
+document.getElementById('sel-session').addEventListener('change', populateDrivers);
+
 document.getElementById('sel-d1').addEventListener('change', updateDriverUI);
 document.getElementById('sel-d2').addEventListener('change', updateDriverUI);
 
+// Запускаем всю цепочку при старте страницы
 populateTracks();
-populateDrivers();
 
 // ─── Status helpers ──────────────────────────────────────────────────────────
 
