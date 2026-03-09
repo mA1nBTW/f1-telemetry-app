@@ -51,10 +51,27 @@ def get_h2h_telemetry(year, track, session_name, driver1, driver2):
     session = fastf1.get_session(year, track, session_name)
     session.load(telemetry=True, weather=False, messages=False) 
     
-    return {
+    result = {
         driver1: get_driver_data(session, driver1),
         driver2: get_driver_data(session, driver2)
     }
+
+    # Compute time delta between the two fastest laps
+    try:
+        lap_d1 = session.laps.pick_drivers(driver1).pick_fastest()
+        lap_d2 = session.laps.pick_drivers(driver2).pick_fastest()
+
+        # delta_time > 0 means driver1 is ahead (gaining), < 0 means driver2 is gaining
+        delta_time, ref_tel, _ = fastf1.utils.delta_time(lap_d1, lap_d2)
+
+        result['delta'] = {
+            'distance': ref_tel['Distance'].tolist(),
+            'delta': delta_time.tolist()
+        }
+    except Exception as e:
+        result['delta'] = {'error': str(e)}
+
+    return result
 
 @app.get("/api/schedule")
 def get_schedule(year: int):

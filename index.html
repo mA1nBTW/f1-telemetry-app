@@ -262,6 +262,30 @@
             width: 100%;
             height: 400px;
         }
+        #chart-delta {
+            width: 100%;
+            height: 260px;
+        }
+        .delta-legend {
+            display: flex;
+            gap: 20px;
+            padding: 8px 16px 4px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .delta-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .delta-legend-swatch {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
 
         /* ── Stat cards ── */
         .stats-row {
@@ -667,11 +691,25 @@ function renderCharts(data, d1code, d2code, d1info, d2info) {
             <div class="tab active" onclick="switchTab('speed', this)">Speed</div>
             <div class="tab" onclick="switchTab('throttle', this)">Throttle</div>
             <div class="tab" onclick="switchTab('gear', this)">Gear</div>
+            <div class="tab" onclick="switchTab('delta', this)">Δ Delta</div>
         </div>
         <div class="chart-wrap">
             <div class="chart-panel active" id="panel-speed"><div id="chart-speed"></div></div>
             <div class="chart-panel" id="panel-throttle"><div id="chart-throttle"></div></div>
             <div class="chart-panel" id="panel-gear"><div id="chart-gear"></div></div>
+            <div class="chart-panel" id="panel-delta">
+                <div class="delta-legend">
+                    <div class="delta-legend-item">
+                        <div class="delta-legend-swatch" style="background:${d1info.color}"></div>
+                        <span>${d1info.name} ahead ↑</span>
+                    </div>
+                    <div class="delta-legend-item">
+                        <div class="delta-legend-swatch" style="background:${d2info.color}"></div>
+                        <span>${d2info.name} ahead ↓</span>
+                    </div>
+                </div>
+                <div id="chart-delta"></div>
+            </div>
         </div>
         <div class="stats-row" id="stats-row"></div>
     `;
@@ -696,6 +734,56 @@ function renderCharts(data, d1code, d2code, d1info, d2info) {
         { x: d1.distance, y: d1.gear, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2, shape:'hv'} },
         { x: d2.distance, y: d2.gear, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2, shape:'hv'} },
     ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Gear', font:{size:12,color:'#888'}}, dtick:1 } }, { responsive:true, displayModeBar:false });
+
+    // ── Delta time chart ──
+    const delta = data.delta;
+    if (delta && !delta.error) {
+        const dist  = delta.distance;
+        const dvals = delta.delta;
+
+        // Split into positive (d1 ahead) and negative (d2 ahead) for colored fills
+        const posY = dvals.map(v => v >= 0 ? v : 0);
+        const negY = dvals.map(v => v <  0 ? v : 0);
+
+        Plotly.newPlot('chart-delta', [
+            // Zero baseline
+            { x: [dist[0], dist[dist.length-1]], y: [0, 0],
+              mode: 'lines', showlegend: false,
+              line: { color: '#444', width: 1, dash: 'dot' } },
+            // d1 ahead zone
+            { x: dist, y: posY, mode: 'lines', name: `${d1info.name} ahead`,
+              line: { color: d1info.color, width: 0 },
+              fill: 'tozeroy', fillcolor: d1info.color + '55',
+              showlegend: false, hovertemplate: '%{y:.3f}s<extra></extra>' },
+            // d2 ahead zone
+            { x: dist, y: negY, mode: 'lines', name: `${d2info.name} ahead`,
+              line: { color: d2info.color, width: 0 },
+              fill: 'tozeroy', fillcolor: d2info.color + '55',
+              showlegend: false, hovertemplate: '%{y:.3f}s<extra></extra>' },
+            // Main delta line
+            { x: dist, y: dvals, mode: 'lines', name: 'Δ Time',
+              line: { color: '#ffffff', width: 2 },
+              hovertemplate: 'Δ %{y:.3f}s<extra></extra>' },
+        ], {
+            ...PLOT_LAYOUT_BASE,
+            margin: { ...PLOT_LAYOUT_BASE.margin, t: 12 },
+            yaxis: {
+                ...PLOT_LAYOUT_BASE.yaxis,
+                title: { text: 'Δ Time (s)', font: { size: 12, color: '#888' } },
+                zeroline: true, zerolinecolor: '#555', zerolinewidth: 1
+            },
+            shapes: [{
+                type: 'line', xref: 'paper', yref: 'y',
+                x0: 0, x1: 1, y0: 0, y1: 0,
+                line: { color: '#555', width: 1 }
+            }]
+        }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('chart-delta').innerHTML =
+            `<div style="display:flex;align-items:center;justify-content:center;height:220px;color:var(--text-muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;text-transform:uppercase;font-size:13px;">
+                Delta unavailable${delta?.error ? ': ' + delta.error : ''}
+            </div>`;
+    }
 
     // ── Stat cards ──
     const maxSpeed1 = Math.max(...d1.speed).toFixed(0);
