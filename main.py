@@ -14,6 +14,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def format_lap_time(lap_time_timedelta):
+    if str(lap_time_timedelta) == "NaT": # If there is no time
+        return "No time"
+    
+    # Seconds
+    total_seconds = lap_time_timedelta.total_seconds()
+    minutes = int(total_seconds // 60)
+    seconds = total_seconds % 60
+    
+    # Formatting
+    return f"{minutes}:{seconds:06.3f}"
+
 def get_h2h_telemetry(year, track, session_name, driver1, driver2):
     fastf1.Cache.enable_cache('cache_folder') 
     
@@ -28,6 +40,7 @@ def get_h2h_telemetry(year, track, session_name, driver1, driver2):
     
     return {
         driver1: {
+            "lap_time": format_lap_time(lap_d1['LapTime']),
             "distance": tel_d1['Distance'].tolist(),
             "speed": tel_d1['Speed'].tolist(),
             "throttle": tel_d1['Throttle'].tolist(),
@@ -35,6 +48,7 @@ def get_h2h_telemetry(year, track, session_name, driver1, driver2):
             "gear": tel_d1['nGear'].tolist()
         },
         driver2: {
+            "lap_time": format_lap_time(lap_d2['LapTime']),
             "distance": tel_d2['Distance'].tolist(),
             "speed": tel_d2['Speed'].tolist(),
             "throttle": tel_d2['Throttle'].tolist(),

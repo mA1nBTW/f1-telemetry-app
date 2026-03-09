@@ -1,75 +1,718 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Telemetry H2H</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: white; padding: 20px; }
-        #chart { width: 100%; height: 500px; background-color: #2d2d2d; border-radius: 8px; }
-        .loading { font-size: 20px; color: #ff1801; }
+        :root {
+            --red: #e8002d;
+            --red-dim: #9a001e;
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --surface2: #1c1c1c;
+            --border: #2a2a2a;
+            --text: #f0f0f0;
+            --text-muted: #888;
+            --accent: #ff6b35;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Barlow', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 32px 20px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        .logo-stripe {
+            width: 6px;
+            height: 48px;
+            background: var(--red);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .logo-stripe::after {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 2px;
+            margin-top: 4px;
+        }
+        header h1 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 800;
+            font-size: 28px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        header h1 span { color: var(--red); }
+        .header-sub {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+        .header-badge {
+            margin-left: auto;
+            background: var(--red);
+            color: white;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 2px;
+            padding: 4px 10px;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ── Controls panel ── */
+        .controls {
+            padding: 24px 32px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 140px;
+        }
+        .control-group.wide { min-width: 200px; }
+
+        label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        select {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 10px 36px 10px 12px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+            width: 100%;
+        }
+        select:hover { border-color: #444; background-color: #222; }
+        select:focus { outline: none; border-color: var(--red); }
+
+        .divider {
+            width: 1px;
+            height: 56px;
+            background: var(--border);
+            align-self: flex-end;
+            margin: 0 4px;
+        }
+
+        .btn-compare {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+            align-self: flex-end;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-compare::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.08);
+            transition: left 0.3s;
+        }
+        .btn-compare:hover::before { left: 0; }
+        .btn-compare:hover { background: #c0001f; }
+        .btn-compare:active { transform: scale(0.97); }
+        .btn-compare:disabled { background: #444; cursor: not-allowed; }
+        .btn-compare:disabled::before { display: none; }
+
+        /* ── Driver color pills ── */
+        .driver-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Main content ── */
+        main { padding: 28px 32px; }
+
+        /* Status bar */
+        #status-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            transition: opacity 0.3s;
+        }
+        #status-bar.loading { color: var(--red); border-color: var(--red-dim); }
+        #status-bar.success { color: #4caf82; border-color: #1a4032; }
+        #status-bar.error { color: #ff6b6b; border-color: #5a2020; }
+        #status-bar.hidden { display: none; }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+        .status-dot.pulse {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ── Chart tabs ── */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active { color: var(--text); border-bottom-color: var(--red); }
+
+        /* ── Chart container ── */
+        .chart-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+        .chart-panel { display: none; }
+        .chart-panel.active { display: block; }
+
+        #chart-speed, #chart-throttle, #chart-gear {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* ── Stat cards ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 16px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: var(--card-accent, var(--border));
+        }
+        .stat-label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 26px;
+            line-height: 1;
+        }
+        .stat-unit {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 3px;
+        }
+
+        /* ── Placeholder ── */
+        #placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 350px;
+            color: var(--text-muted);
+            gap: 16px;
+        }
+        .placeholder-icon {
+            font-size: 48px;
+            opacity: 0.3;
+        }
+        .placeholder-text {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            header, .controls, main { padding-left: 16px; padding-right: 16px; }
+            .divider { display: none; }
+            .btn-compare { width: 100%; justify-content: center; }
+        }
     </style>
 </head>
 <body>
 
-    <h2>Speed comparison: ANT vs RUS (Australia 2026 Q)</h2>
-    <div id="status" class="loading">Loading data from the server...</div>
+<header>
+    <div class="logo-stripe"></div>
+    <div>
+        <h1>F1 <span>Telemetry</span> H2H</h1>
+        <div class="header-sub">Head-to-head comparison</div>
+    </div>
+    <div class="header-badge">Live Data</div>
+</header>
+
+<!-- ── Controls ── -->
+<div class="controls">
+
+    <div class="control-group">
+        <label>Season</label>
+        <select id="sel-year">
+            <option value="2026">2026</option>
+            <option value="2025" selected>2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+        </select>
+    </div>
+
+    <div class="control-group wide">
+        <label>Grand Prix</label>
+        <select id="sel-track">
+            <!-- populated by JS -->
+        </select>
+    </div>
+
+    <div class="control-group">
+        <label>Session</label>
+        <select id="sel-session">
+            <option value="Q">Qualifying</option>
+            <option value="R">Race</option>
+            <option value="FP1">FP1</option>
+            <option value="FP2">FP2</option>
+            <option value="FP3">FP3</option>
+            <option value="S">Sprint</option>
+        </select>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="control-group">
+        <label>Driver 1</label>
+        <select id="sel-d1">
+            <!-- populated by JS -->
+        </select>
+        <div class="driver-indicator">
+            <div class="color-dot" id="dot-d1" style="background:#00D2BE"></div>
+            <span id="name-d1" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--text-muted)">Driver 1</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>Driver 2</label>
+        <select id="sel-d2">
+            <!-- populated by JS -->
+        </select>
+        <div class="driver-indicator">
+            <div class="color-dot" id="dot-d2" style="background:#aaaaaa"></div>
+            <span id="name-d2" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--text-muted)">Driver 2</span>
+        </div>
+    </div>
+
+    <button class="btn-compare" id="btn-compare" onclick="runComparison()">
+        ▶ Compare
+    </button>
+</div>
+
+<!-- ── Main ── -->
+<main>
+
+    <div id="status-bar" class="hidden">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">–</span>
+    </div>
+
+    <!-- Chart area -->
+    <div id="chart-area">
+        <div id="placeholder">
+            <div class="placeholder-icon">🏎</div>
+            <div class="placeholder-text">Select drivers and press Compare</div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const DRIVERS = [
+    { code: "VER", name: "M. Verstappen", color: "#3671C6" },
+    { code: "PER", name: "S. Pérez",      color: "#3671C6" },
+    { code: "LEC", name: "C. Leclerc",    color: "#E8002D" },
+    { code: "SAI", name: "C. Sainz",      color: "#E8002D" },
+    { code: "HAM", name: "L. Hamilton",   color: "#27F4D2" },
+    { code: "RUS", name: "G. Russell",    color: "#27F4D2" },
+    { code: "NOR", name: "L. Norris",     color: "#FF8000" },
+    { code: "PIA", name: "O. Piastri",    color: "#FF8000" },
+    { code: "ALO", name: "F. Alonso",     color: "#358C75" },
+    { code: "STR", name: "L. Stroll",     color: "#358C75" },
+    { code: "OCO", name: "E. Ocon",       color: "#0090FF" },
+    { code: "GAS", name: "P. Gasly",      color: "#0090FF" },
+    { code: "ALB", name: "A. Albon",      color: "#64C4FF" },
+    { code: "SAR", name: "L. Sargeant",   color: "#64C4FF" },
+    { code: "BOT", name: "V. Bottas",     color: "#C92D4B" },
+    { code: "ZHO", name: "G. Zhou",       color: "#C92D4B" },
+    { code: "TSU", name: "Y. Tsunoda",    color: "#6692FF" },
+    { code: "RIC", name: "D. Ricciardo",  color: "#6692FF" },
+    { code: "MAG", name: "K. Magnussen",  color: "#B6BABD" },
+    { code: "HUL", name: "N. Hülkenberg", color: "#B6BABD" },
+    { code: "ANT", name: "A. Antonelli",  color: "#27F4D2" },
+    { code: "BEA", name: "O. Bearman",    color: "#E8002D" },
+    { code: "LAW", name: "L. Lawson",     color: "#3671C6" },
+    { code: "HAD", name: "I. Hadjar",     color: "#6692FF" },
+    { code: "DOO", name: "J. Doohan",     color: "#0090FF" },
+    { code: "BOR", name: "G. Bortoleto",  color: "#C92D4B" },
+];
+
+// 2025 calendar (round number → name)
+const TRACKS_2025 = [
+    { id: 1,  name: "Australia — Melbourne" },
+    { id: 2,  name: "China — Shanghai" },
+    { id: 3,  name: "Japan — Suzuka" },
+    { id: 4,  name: "Bahrain — Sakhir" },
+    { id: 5,  name: "Saudi Arabia — Jeddah" },
+    { id: 6,  name: "Miami" },
+    { id: 7,  name: "Emilia-Romagna — Imola" },
+    { id: 8,  name: "Monaco" },
+    { id: 9,  name: "Spain — Barcelona" },
+    { id: 10, name: "Canada — Montréal" },
+    { id: 11, name: "Austria — Spielberg" },
+    { id: 12, name: "Great Britain — Silverstone" },
+    { id: 13, name: "Belgium — Spa" },
+    { id: 14, name: "Hungary — Budapest" },
+    { id: 15, name: "Netherlands — Zandvoort" },
+    { id: 16, name: "Italy — Monza" },
+    { id: 17, name: "Azerbaijan — Baku" },
+    { id: 18, name: "Singapore" },
+    { id: 19, name: "USA — Austin" },
+    { id: 20, name: "Mexico City" },
+    { id: 21, name: "São Paulo — Interlagos" },
+    { id: 22, name: "Las Vegas" },
+    { id: 23, name: "Qatar — Lusail" },
+    { id: 24, name: "Abu Dhabi — Yas Marina" },
+];
+
+const TRACKS_OTHER = [
+    { id: 1,  name: "Australia — Melbourne" },
+    { id: 2,  name: "Bahrain — Sakhir" },
+    { id: 3,  name: "Saudi Arabia — Jeddah" },
+    { id: 4,  name: "Japan — Suzuka" },
+    { id: 5,  name: "China — Shanghai" },
+    { id: 6,  name: "Miami" },
+    { id: 7,  name: "Emilia-Romagna — Imola" },
+    { id: 8,  name: "Monaco" },
+    { id: 9,  name: "Spain — Barcelona" },
+    { id: 10, name: "Canada — Montréal" },
+    { id: 11, name: "Austria — Spielberg" },
+    { id: 12, name: "Great Britain — Silverstone" },
+    { id: 13, name: "Hungary — Budapest" },
+    { id: 14, name: "Belgium — Spa" },
+    { id: 15, name: "Netherlands — Zandvoort" },
+    { id: 16, name: "Italy — Monza" },
+    { id: 17, name: "Azerbaijan — Baku" },
+    { id: 18, name: "Singapore" },
+    { id: 19, name: "USA — Austin" },
+    { id: 20, name: "Mexico City" },
+    { id: 21, name: "São Paulo — Interlagos" },
+    { id: 22, name: "Las Vegas" },
+    { id: 23, name: "Qatar — Lusail" },
+    { id: 24, name: "Abu Dhabi — Yas Marina" },
+];
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+
+function populateDrivers() {
+    const d1 = document.getElementById('sel-d1');
+    const d2 = document.getElementById('sel-d2');
+    DRIVERS.forEach((d, i) => {
+        d1.insertAdjacentHTML('beforeend', `<option value="${d.code}">${d.code} — ${d.name}</option>`);
+        d2.insertAdjacentHTML('beforeend', `<option value="${d.code}">${d.code} — ${d.name}</option>`);
+    });
+    d1.value = 'VER';
+    d2.value = 'RUS';
+    updateDriverUI();
+}
+
+function populateTracks() {
+    const year = parseInt(document.getElementById('sel-year').value);
+    const list = year === 2025 ? TRACKS_2025 : TRACKS_OTHER;
+    const sel = document.getElementById('sel-track');
+    sel.innerHTML = '';
+    list.forEach(t => {
+        sel.insertAdjacentHTML('beforeend', `<option value="${t.id}">Rd ${t.id} · ${t.name}</option>`);
+    });
+}
+
+function updateDriverUI() {
+    ['d1','d2'].forEach(key => {
+        const code = document.getElementById(`sel-${key}`).value;
+        const driver = DRIVERS.find(d => d.code === code) || {};
+        document.getElementById(`dot-${key}`).style.background = driver.color || '#888';
+        document.getElementById(`name-${key}`).textContent = driver.name || code;
+    });
+}
+
+document.getElementById('sel-year').addEventListener('change', populateTracks);
+document.getElementById('sel-d1').addEventListener('change', updateDriverUI);
+document.getElementById('sel-d2').addEventListener('change', updateDriverUI);
+
+populateTracks();
+populateDrivers();
+
+// ─── Status helpers ──────────────────────────────────────────────────────────
+
+function setStatus(type, msg) {
+    const bar = document.getElementById('status-bar');
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    bar.className = type === 'hide' ? 'hidden' : type;
+    dot.className = 'status-dot' + (type === 'loading' ? ' pulse' : '');
+    txt.textContent = msg;
+}
+
+// ─── Plotly theme ────────────────────────────────────────────────────────────
+
+const PLOT_LAYOUT_BASE = {
+    paper_bgcolor: '#141414',
+    plot_bgcolor:  '#141414',
+    font: { color: '#f0f0f0', family: 'Barlow Condensed, sans-serif', size: 13 },
+    margin: { t: 28, r: 20, b: 48, l: 60 },
+    legend: { bgcolor: '#1c1c1c', bordercolor: '#2a2a2a', borderwidth: 1 },
+    xaxis: {
+        gridcolor: '#222', zerolinecolor: '#333',
+        title: { text: 'Distance (m)', font: { size: 12, color: '#888' } }
+    },
+    yaxis: { gridcolor: '#222', zerolinecolor: '#333' },
+    hovermode: 'x unified',
+    hoverlabel: { bgcolor: '#1c1c1c', bordercolor: '#333', font: { family: 'Barlow Condensed', size: 13 } }
+};
+
+// ─── Main comparison ─────────────────────────────────────────────────────────
+
+async function runComparison() {
+    const year     = document.getElementById('sel-year').value;
+    const track    = document.getElementById('sel-track').value;
+    const session  = document.getElementById('sel-session').value;
+    const driver1  = document.getElementById('sel-d1').value;
+    const driver2  = document.getElementById('sel-d2').value;
+
+    if (driver1 === driver2) {
+        setStatus('error', 'Please select two different drivers.');
+        return;
+    }
+
+    const d1info = DRIVERS.find(d => d.code === driver1) || { color: '#00D2BE', name: driver1 };
+    const d2info = DRIVERS.find(d => d.code === driver2) || { color: '#aaaaaa', name: driver2 };
+
+    const btn = document.getElementById('btn-compare');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    setStatus('loading', `Fetching telemetry: ${driver1} vs ${driver2} — ${year} Rd ${track} (${session})…`);
+
+    const url = `http://127.0.0.1:8000/api/telemetry?year=${year}&track=${track}&session=${session}&driver1=${driver1}&driver2=${driver2}`;
+
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Server error ${resp.status}`);
+        const data = await resp.json();
+
+        renderCharts(data, driver1, driver2, d1info, d2info);
+        setStatus('success', `Loaded · ${driver1} vs ${driver2} · ${year} Rd ${track} · ${session}`);
+
+    } catch (err) {
+        console.error(err);
+        setStatus('error', `Error: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '▶ Compare';
+    }
+}
+
+// ─── Render ──────────────────────────────────────────────────────────────────
+
+function renderCharts(data, d1code, d2code, d1info, d2info) {
+    const area = document.getElementById('chart-area');
+
+    area.innerHTML = `
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('speed', this)">Speed</div>
+            <div class="tab" onclick="switchTab('throttle', this)">Throttle</div>
+            <div class="tab" onclick="switchTab('gear', this)">Gear</div>
+        </div>
+        <div class="chart-wrap">
+            <div class="chart-panel active" id="panel-speed"><div id="chart-speed"></div></div>
+            <div class="chart-panel" id="panel-throttle"><div id="chart-throttle"></div></div>
+            <div class="chart-panel" id="panel-gear"><div id="chart-gear"></div></div>
+        </div>
+        <div class="stats-row" id="stats-row"></div>
+    `;
+
+    const d1 = data[d1code];
+    const d2 = data[d2code];
+
+    // ── Speed chart ──
+    Plotly.newPlot('chart-speed', [
+        { x: d1.distance, y: d1.speed, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2} },
+        { x: d2.distance, y: d2.speed, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2} },
+    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Speed (km/h)', font:{size:12,color:'#888'}} } }, { responsive:true, displayModeBar:false });
+
+    // ── Throttle chart ──
+    Plotly.newPlot('chart-throttle', [
+        { x: d1.distance, y: d1.throttle, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2}, fill:'tozeroy', fillcolor: d1info.color+'22' },
+        { x: d2.distance, y: d2.throttle, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2}, fill:'tozeroy', fillcolor: d2info.color+'22' },
+    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Throttle (%)', font:{size:12,color:'#888'}} } }, { responsive:true, displayModeBar:false });
+
+    // ── Gear chart ──
+    Plotly.newPlot('chart-gear', [
+        { x: d1.distance, y: d1.gear, mode:'lines', name: d1info.name, line:{color: d1info.color, width:2, shape:'hv'} },
+        { x: d2.distance, y: d2.gear, mode:'lines', name: d2info.name, line:{color: d2info.color, width:2, shape:'hv'} },
+    ], { ...PLOT_LAYOUT_BASE, yaxis: { ...PLOT_LAYOUT_BASE.yaxis, title:{text:'Gear', font:{size:12,color:'#888'}}, dtick:1 } }, { responsive:true, displayModeBar:false });
+
+    // ── Stat cards ──
+    const maxSpeed1 = Math.max(...d1.speed).toFixed(0);
+    const maxSpeed2 = Math.max(...d2.speed).toFixed(0);
+    const avgThrottle1 = (d1.throttle.reduce((a,b)=>a+b,0)/d1.throttle.length).toFixed(1);
+    const avgThrottle2 = (d2.throttle.reduce((a,b)=>a+b,0)/d2.throttle.length).toFixed(1);
     
-    <div id="chart"></div>
+    // Достаем времена кругов из JSON
+    const time1 = d1.lap_time || "N/A";
+    const time2 = d2.lap_time || "N/A";
 
-    <script>
-        // Local API
-        const API_URL = "http://127.0.0.1:8000/api/telemetry?year=2025&track=5&session=Q&driver1=VER&driver2=RUS";
+    const statsHtml = `
+        <div class="stat-card" style="--card-accent:${d1info.color}">
+            <div class="stat-label">${d1info.name} — Lap Time</div>
+            <div class="stat-value">${time1}</div>
+        </div>
+        <div class="stat-card" style="--card-accent:${d2info.color}">
+            <div class="stat-label">${d2info.name} — Lap Time</div>
+            <div class="stat-value">${time2}</div>
+        </div>
 
-        async function loadData() {
-            try {
-                // 1. Asking backend
-                const response = await fetch(API_URL);
-                const data = await response.json();
+        <div class="stat-card" style="--card-accent:${d1info.color}">
+            <div class="stat-label">${d1info.name} — Top Speed</div>
+            <div class="stat-value">${maxSpeed1}<span class="stat-unit">km/h</span></div>
+        </div>
+        <div class="stat-card" style="--card-accent:${d2info.color}">
+            <div class="stat-label">${d2info.name} — Top Speed</div>
+            <div class="stat-value">${maxSpeed2}<span class="stat-unit">km/h</span></div>
+        </div>
+        <div class="stat-card" style="--card-accent:${d1info.color}">
+            <div class="stat-label">${d1info.name} — Avg Throttle</div>
+            <div class="stat-value">${avgThrottle1}<span class="stat-unit">%</span></div>
+        </div>
+        <div class="stat-card" style="--card-accent:${d2info.color}">
+            <div class="stat-label">${d2info.name} — Avg Throttle</div>
+            <div class="stat-value">${avgThrottle2}<span class="stat-unit">%</span></div>
+        </div>
+    `;
+    document.getElementById('stats-row').innerHTML = statsHtml;
+}
 
-                // 2. Loading status removing
-                document.getElementById('status').style.display = 'none';
+// ─── Tab switching ────────────────────────────────────────────────────────────
 
-                // 3. line for (VER)
-                const trace1 = {
-                    x: data.VER.distance, // Ось X - дистанция
-                    y: data.VER.speed,    // Ось Y - скорость
-                    mode: 'lines',
-                    name: 'M. Verstappen',
-                    line: {color: '#00D2BE', width: 2} // Цвет Мерседеса
-                };
-
-                // 4. Line for (RUS)
-                const trace2 = {
-                    x: data.RUS.distance,
-                    y: data.RUS.speed,
-                    mode: 'lines',
-                    name: 'G. Russell',
-                    line: {color: '#aaaaaa', width: 2} // Grey
-                };
-
-                // 5. Graphic setting
-                const layout = {
-                    title: 'Speed vs Distance',
-                    paper_bgcolor: '#2d2d2d', // Dark theme
-                    plot_bgcolor: '#2d2d2d',
-                    font: { color: 'white' },
-                    xaxis: { title: 'Distance (m)' },
-                    yaxis: { title: 'Speed (km/h)' }
-                };
-
-                // 6. Drawing
-                Plotly.newPlot('chart', [trace1, trace2], layout);
-
-            } catch (error) {
-                document.getElementById('status').innerText = "Loading data error!";
-                console.error("Fetch error:", error);
-            }
-        }
-
-        loadData();
-    </script>
+function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+    // Trigger resize so Plotly fills the now-visible div
+    window.dispatchEvent(new Event('resize'));
+}
+</script>
 
 </body>
 </html>
