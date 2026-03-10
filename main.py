@@ -3,9 +3,12 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import fastf1
 import pandas as pd
+import os
 
 # Creating web-app
 app = FastAPI()
+
+os.makedirs('cache_folder', exist_ok=True)
 
 # Allowing cross adress gets
 app.add_middleware(
