@@ -1,6 +1,8 @@
-# F1 Telemetry H2H 🏎️
+# F1 Telemetry H2H
 
 A web tool for head-to-head comparison of Formula 1 driver telemetry. Select any two drivers from any session across multiple seasons and circuits — and see exactly where the time is gained or lost.
+
+**Live demo: [f1-telemetry-app.onrender.com](https://f1-telemetry-app.onrender.com)**
 
 ---
 
@@ -24,12 +26,13 @@ The app loads official F1 session data via the [FastF1](https://github.com/theOe
 | F1 Data | FastF1 |
 | Frontend | Vanilla JS, Plotly.js |
 | Fonts | Barlow Condensed |
+| Hosting | Render |
 
 No framework, no build step — just a single `index.html` served by FastAPI.
 
 ---
 
-## Getting started
+## Running locally
 
 ### 1. Clone the repo
 
@@ -41,7 +44,7 @@ cd f1-telemetry-h2h
 ### 2. Install dependencies
 
 ```bash
-pip install fastapi uvicorn fastf1 pandas
+pip install -r requirements.txt
 ```
 
 ### 3. Run the server
@@ -70,9 +73,11 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ```
 f1-telemetry-h2h/
-├── main.py        # FastAPI backend — data fetching & API endpoints
-├── index.html     # Frontend — UI and chart rendering
-└── cache_folder/  # Auto-created by FastF1 for local data cache
+├── main.py           # FastAPI backend — data fetching & API endpoints
+├── index.html        # Frontend — UI and chart rendering
+├── favicon.png       # App icon
+├── requirements.txt  # Python dependencies
+└── cache_folder/     # Auto-created by FastF1 for local data cache
 ```
 
 ### API endpoints
@@ -90,3 +95,4 @@ f1-telemetry-h2h/
 - Data availability depends on FastF1 — sessions from 2018 onward are generally well supported
 - Telemetry is based on each driver's **personal fastest lap** in the selected session
 - The time delta is computed using `fastf1.utils.delta_time`: positive values mean Driver 1 is ahead at that point on track
+- On the hosted version, the first request to a new session may take a moment while data is being fetched and cached
