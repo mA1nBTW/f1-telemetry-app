@@ -150,3 +150,7 @@ def get_telemetry(year: int, track: int, session: str, driver1: str, driver2: st
 @app.get("/")
 def serve_frontend():
     return FileResponse("index.html")
+
+@app.get("/favicon.png")
+def favicon():
+    return FileResponse("favicon.png")
