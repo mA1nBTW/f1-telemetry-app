@@ -2,7 +2,7 @@
 
 A web tool for head-to-head comparison of Formula 1 driver telemetry. Select any two drivers from any session across multiple seasons and circuits — and see exactly where the time is gained or lost.
 
-**Live demo: [f1-telemetry-app.onrender.com](https://f1-telemetry-app.onrender.com)**
+**Live demo: [f1-telemetry-app.hf.space](https://ma1nbtw-f1-telemetry-app.hf.space)**
 
 ---
 
